@@ -1,23 +1,16 @@
 package com.example.jett.milemarker;
-//
-//public class Main extends AppCompatActivity {
-//
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
-//    }
-//}
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.StrictMode;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -30,34 +23,36 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.gson.Gson;
 
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+
+
 
 public class Main extends AppCompatActivity implements OnMapReadyCallback, android.support.v4.app.ActivityCompat.OnRequestPermissionsResultCallback {
 
     private FusedLocationProviderClient locationServices;
     private GoogleMap gMap;
+    private snapToRoads snapToRoads;
 
     private Button findMe;
     private Button trackMe;
 
     private boolean trackingOn = false;
-    private Timer trackingTimer = new Timer();
-
-    TimerTask task = new TimerTask() {
-        @Override
-        public void run() {
-            getDeviceLocation(true, "Location");
-        }
-    };
+    private Timer trackingTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        snapToRoads = new snapToRoads(this.getString(R.string.google_maps_key));
 
         locationServices = LocationServices.getFusedLocationProviderClient(this);
         SupportMapFragment mappie = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mappie);
@@ -103,17 +98,27 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, andro
     }
 
     void timerControl(Boolean isTimerOn){
+
         if (isTimerOn){
-            trackingTimer.scheduleAtFixedRate(task, 0, 120000);
+            trackingTimer = new Timer();
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    getDeviceLocation(true, "Location");
+                }
+            };
+            trackingTimer.scheduleAtFixedRate(task, 0, 20000);
         }
         else {
             trackingTimer.cancel();
+            snapToRoads.execute();
         }
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         gMap = googleMap;
+        snapToRoads.map = gMap;
     }
 
     @Override
@@ -149,6 +154,8 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, andro
             public void onComplete(@NonNull Task<Location> task) {
                 if (task.isSuccessful()){
                     Location result = task.getResult();
+
+                    snapToRoads.locations.add(result);
                     gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(result.getLatitude(), result.getLongitude()), 15));
                     if (addPin){
                         gMap.addMarker(new MarkerOptions().position(new LatLng(result.getLatitude(), result.getLongitude()))
@@ -158,4 +165,9 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, andro
             }
         });
     }
+
+//    void drawMapLines(PolylineOptions polyline) {
+//
+//        gMap.addPolyline(polyline);
+//    }
 }
