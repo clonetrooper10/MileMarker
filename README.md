@@ -7,3 +7,4 @@ Goals to cover:
 3. Click on one of those to bring up a map and details about it. 
 4. Click on the new trip to go to the current screen we have. 
 5. when you click "start trip" it brings up a black screen that says "stop" and also "Dont use your phone while driving!"
+6. get the designs working
